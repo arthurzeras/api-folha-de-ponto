@@ -1,0 +1,13 @@
+{
+  "name": "desafio-ilia",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/app.mjs",
+  "scripts": {
+    "dev": "node --watch src/app.mjs",
+    "test": "node --test src/tests.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
