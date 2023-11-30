@@ -5,7 +5,9 @@
   "main": "src/app.mjs",
   "scripts": {
     "dev": "node --watch src/app.mjs",
-    "test": "node --test src/tests.mjs"
+    "test": "PORT=3333 node --test src/tests.mjs",
+    "test:watch": "PORT=3333 node --watch src/tests.mjs",
+    "test:coverage": "NODE_V8_COVERAGE=./.coverage PORT=3333 node --test --experimental-test-coverage src/tests.mjs"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +16,7 @@
     "express": "^4.18.2"
   },
   "devDependencies": {
-    "prettier": "^3.1.0"
+    "prettier": "^3.1.0",
+    "supertest": "^6.3.3"
   }
 }

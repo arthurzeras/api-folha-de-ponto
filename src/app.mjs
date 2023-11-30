@@ -1,10 +1,14 @@
 import express from 'express';
 import router from './router.mjs';
 
+const PORT = process.env.PORT || 3000;
+
 const app = express();
 
 app.use(router);
 
-app.listen(3000, () => {
-  console.log('Listening on port 3000');
+const server = app.listen(PORT, () => {
+  console.log(`Listening on port ${PORT}`);
 });
+
+export default server;
