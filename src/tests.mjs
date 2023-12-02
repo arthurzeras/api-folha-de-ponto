@@ -1,8 +1,13 @@
-import test from 'node:test';
-import assert from 'node:assert';
-import request from 'supertest';
 import app from './app.mjs';
+import test from 'node:test';
+import request from 'supertest';
+import assert from 'node:assert';
 import messages from './messages.mjs';
+import db, { client } from './db.mjs';
+
+test.beforeEach(async () => {
+  await client.connect();
+});
 
 test('Should return Hello World for / endpoint', async (t) => {
   const response = await request(app).get('/');
@@ -29,7 +34,62 @@ test('Should save a new entrance for /batidas endpoint', async () => {
   assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
+  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const register = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete register._id;
+
+  assert.deepEqual(register, EXPECTED_DB_RETURN);
+
   app.close();
+});
+
+test('Should not create two registers for same day', async () => {
+  const response1 = await request(app)
+    .post('/batidas')
+    .send({ momento: '2023-11-29T08:00:00' });
+
+  const EXPECTED_STATUS_CODE = 200;
+  const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+
+  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.deepEqual(response1.body, EXPECTED_RESPONSE);
+
+  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const register = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete register._id;
+
+  assert.deepEqual(register, EXPECTED_DB_RETURN);
+
+  const response2 = await request(app)
+    .post('/batidas')
+    .send({ momento: '2023-11-29T12:00:00' });
+
+  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
+
+  const totalRegisters = await db
+    .collection('registers')
+    .countDocuments({ day: '2023-11-29' });
+
+  const EXPECTED_TOTAL_REGISTERS = 1;
+  assert.strictEqual(totalRegisters, EXPECTED_TOTAL_REGISTERS);
+
+  const registerUpdated = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete registerUpdated._id;
+
+  EXPECTED_DB_RETURN.registers.push('12:00:00');
+  assert.deepEqual(registerUpdated, EXPECTED_DB_RETURN);
 });
 
 test('Should return a Bad Request error if not receive "momento" parameter', async () => {
@@ -78,4 +138,9 @@ test('Should return TO DO for /folhas-de-ponto/:mes endpoint', async () => {
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   app.close();
+});
+
+test.afterEach(async () => {
+  await db.collection('registers').drop();
+  await client.close();
 });

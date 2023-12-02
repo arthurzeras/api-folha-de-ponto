@@ -1,10 +1,22 @@
+import db from './db.mjs';
 import messages from './messages.mjs';
+
+async function createOrUpdateRegister(day, hour) {
+  const collection = db.collection('registers');
+  const register = await collection.findOne({ day });
+
+  if (register) {
+    return collection.updateOne(register, { $push: { registers: hour } });
+  }
+
+  return collection.insertOne({ day, registers: [hour] });
+}
 
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export function registerHandler(req, res) {
+export async function registerHandler(req, res) {
   const data = req.body;
 
   if (!('momento' in data)) {
@@ -20,6 +32,13 @@ export function registerHandler(req, res) {
   }
 
   const [day, hour] = data.momento.split('T');
+
+  try {
+    await createOrUpdateRegister(day, hour);
+  } catch (error) {
+    res.status(500).json({ message: messages.REGISTER.FAILED_TO_REGISTER });
+  }
+
   res.json({ dia: day, pontos: [hour] });
 }
 
