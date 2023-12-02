@@ -9,6 +9,10 @@ test.beforeEach(async () => {
   await client.connect();
 });
 
+function createRegister(date) {
+  return request(app).post('/batidas').send({ momento: date });
+}
+
 test('Should return Hello World for / endpoint', async (t) => {
   const response = await request(app).get('/');
 
@@ -22,9 +26,7 @@ test('Should return Hello World for / endpoint', async (t) => {
 });
 
 test('Should save a new entrance for /batidas endpoint', async () => {
-  const response = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
+  const response = await createRegister('2023-11-29T08:00:00');
 
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
@@ -47,10 +49,7 @@ test('Should save a new entrance for /batidas endpoint', async () => {
 });
 
 test('Should not create two registers for same day', async () => {
-  const response1 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
-
+  const response1 = await createRegister('2023-11-29T08:00:00');
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
   const EXPECTED_RESPONSE_TYPE = 'application/json';
@@ -68,10 +67,7 @@ test('Should not create two registers for same day', async () => {
 
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
-  const response2 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T12:00:00' });
-
+  const response2 = await createRegister('2023-11-29T12:00:00');
   assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
   assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
 
@@ -109,10 +105,7 @@ test('Should return a Bad Request error if not receive "momento" parameter', asy
 });
 
 test('Should return a Bad Request error if "momento" parameter is not a valid date', async () => {
-  const response = await request(app)
-    .post('/batidas')
-    .send({ momento: 'dasdsadsa' });
-
+  const response = await createRegister('mdasdasdas');
   const EXPECTED_STATUS_CODE = 400;
   const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = {
@@ -127,9 +120,7 @@ test('Should return a Bad Request error if "momento" parameter is not a valid da
 });
 
 test('Should return a Bad Request error if hour is before than the previous added', async () => {
-  const response1 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T09:00:00' });
+  const response1 = await createRegister('2023-11-29T09:00:00');
 
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['09:00:00'] };
@@ -148,10 +139,7 @@ test('Should return a Bad Request error if hour is before than the previous adde
 
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
-  const response2 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
-
+  const response2 = await createRegister('2023-11-29T08:00:00');
   const EXPECTED_STATUS_CODE_2 = 400;
   const EXPECTED_RESPONSE_2 = { message: messages.REGISTER.INVALID_HOUR };
 
@@ -168,9 +156,7 @@ test('Should return a Bad Request error if hour is before than the previous adde
 });
 
 test('Should return a Bad Request error if hour is same than the previous added', async () => {
-  const response1 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
+  const response1 = await createRegister('2023-11-29T08:00:00');
 
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
@@ -189,10 +175,7 @@ test('Should return a Bad Request error if hour is same than the previous added'
 
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
-  const response2 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
-
+  const response2 = await createRegister('2023-11-29T08:00:00');
   const EXPECTED_STATUS_CODE_2 = 400;
   const EXPECTED_RESPONSE_2 = { message: messages.REGISTER.INVALID_HOUR };
 
@@ -209,9 +192,7 @@ test('Should return a Bad Request error if hour is same than the previous added'
 });
 
 test('Should save two registers', async () => {
-  const response1 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T08:00:00' });
+  const response1 = await createRegister('2023-11-29T08:00:00');
 
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
@@ -230,10 +211,7 @@ test('Should save two registers', async () => {
 
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
-  const response2 = await request(app)
-    .post('/batidas')
-    .send({ momento: '2023-11-29T12:00:00' });
-
+  const response2 = await createRegister('2023-11-29T12:00:00');
   EXPECTED_RESPONSE.pontos.push('12:00:00');
   assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
   assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
@@ -253,6 +231,79 @@ test('Should save two registers', async () => {
 
   assert.strictEqual(register2.registers.length, EXPECTED_TOTAL_REGISTERS);
   assert.deepEqual(register2, EXPECTED_DB_RETURN_2);
+});
+
+test('Should save 4 registers', async () => {
+  const response1 = await createRegister('2023-11-29T08:00:00');
+  const response2 = await createRegister('2023-11-29T12:00:00');
+  const response3 = await createRegister('2023-11-29T13:00:00');
+  const response4 = await createRegister('2023-11-29T17:00:00');
+
+  const EXPECTED_STATUS_CODE = 200;
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+
+  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response3.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response4.type, EXPECTED_RESPONSE_TYPE);
+
+  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response3.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response4.status, EXPECTED_STATUS_CODE);
+
+  const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
+  assert.deepEqual(response1.body, EXPECTED_RESPONSE);
+
+  EXPECTED_RESPONSE.pontos.push('12:00:00');
+  assert.deepEqual(response2.body, EXPECTED_RESPONSE);
+
+  EXPECTED_RESPONSE.pontos.push('13:00:00');
+  assert.deepEqual(response3.body, EXPECTED_RESPONSE);
+
+  EXPECTED_RESPONSE.pontos.push('17:00:00');
+  assert.deepEqual(response4.body, EXPECTED_RESPONSE);
+
+  const register = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete register._id;
+
+  const EXPECTED_TOTAL_REGISTERS = 4;
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    registers: ['08:00:00', '12:00:00', '13:00:00', '17:00:00'],
+  };
+
+  assert.strictEqual(register.registers.length, EXPECTED_TOTAL_REGISTERS);
+  assert.deepEqual(register, EXPECTED_DB_RETURN);
+});
+
+test('Should return a Bad Request error if four registers already exists for same day', async () => {
+  const DB_DATA = {
+    day: '2023-11-29',
+    registers: ['08:00:00', '12:00:00', '13:00:00', '17:00:00'],
+  };
+
+  await db.collection('registers').insertOne({ ...DB_DATA });
+
+  const response = await createRegister('2023-11-29T18:00:00');
+  const EXPECTED_STATUS_CODE = 400;
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+  const EXPECTED_RESPONSE = { message: messages.REGISTER.MAX_HOURS };
+
+  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+
+  const register = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete register._id;
+
+  assert.deepEqual(register, DB_DATA);
 });
 
 test('Should return TO DO for /folhas-de-ponto/:mes endpoint', async () => {

@@ -10,6 +10,10 @@ async function createOrUpdateRegister(day, hour) {
   const register = await DB_COLLECTION.findOne({ day });
 
   if (register) {
+    if (register.registers.length === 4) {
+      throw new RegisterError(messages.REGISTER.MAX_HOURS);
+    }
+
     const existsGreater = register.registers.find(
       (_register) =>
         hourStringToSeconds(_register) >= hourStringToSeconds(hour),
