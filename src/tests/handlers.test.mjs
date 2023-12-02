@@ -335,10 +335,24 @@ test('Should not allow lunch time smallest than 1 hour', async () => {
 });
 
 test('Should return TO DO for /folhas-de-ponto/:mes endpoint', async () => {
-  const response = await request(app).get('/folhas-de-ponto/22222');
+  const response = await request(app).get('/folhas-de-ponto/2021-12');
 
   const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { message: 'TO DO' };
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+
+  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+
+  app.close();
+});
+
+test('Should return a Bad Request error if URL parameter is not valid in "/folhas-de-ponto" endpoint', async () => {
+  const response = await request(app).get('/folhas-de-ponto/22312');
+
+  const EXPECTED_STATUS_CODE = 400;
+  const EXPECTED_RESPONSE = { message: messages.REPORT.INVALID_PARAMETER };
   const EXPECTED_RESPONSE_TYPE = 'application/json';
 
   assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);

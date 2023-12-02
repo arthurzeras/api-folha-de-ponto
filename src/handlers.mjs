@@ -96,5 +96,12 @@ export async function registerHandler(req, res) {
  * @param {import('express').Response} res
  */
 export function reportHandler(req, res) {
+  const monthParam = req.params.mes;
+  const isValidParam = /^20\d{2}-(?:0[1-9]|1[0-2])$/g.test(monthParam);
+
+  if (!isValidParam) {
+    return res.status(400).json({ message: messages.REPORT.INVALID_PARAMETER });
+  }
+
   res.json({ message: 'TO DO' });
 }

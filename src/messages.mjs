@@ -8,6 +8,11 @@ const REGISTER = {
   INVALID_PARAMETER_TYPE: 'O parâmetro "momento" precisa ser uma data válida no formato YYYY-MM-DDTHH:mm:ss', // prettier-ignore
 };
 
+const REPORT = {
+  INVALID_PARAMETER: 'O mês deve ser informado no formado YYYY-MM',
+};
+
 export default {
   REGISTER,
+  REPORT,
 };
