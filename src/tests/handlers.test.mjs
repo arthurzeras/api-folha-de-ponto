@@ -2,8 +2,10 @@ import app from '../app.mjs';
 import test from 'node:test';
 import request from 'supertest';
 import assert from 'node:assert';
+import * as utils from '../utils.mjs';
 import messages from '../messages.mjs';
 import db, { client } from '../db.mjs';
+import * as fixtures from './fixtures.mjs';
 
 test.beforeEach(async () => {
   await client.connect();
@@ -361,16 +363,143 @@ test('Should not allow lunch time smallest than 1 hour', async () => {
   assert.deepEqual(register, DB_DATA);
 });
 
-test('Should return TO DO for /folhas-de-ponto/:mes endpoint', async () => {
-  const response = await request(app).get('/folhas-de-ponto/2021-12');
+test('Should return valid /folhas-de-ponto/:mes report', async () => {
+  const DB_DATA = fixtures.registersForMonth('2023-11');
+  await db.collection('registers').insertMany([...DB_DATA]);
+
+  const response = await request(app).get('/folhas-de-ponto/2023-11');
 
   const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE = { message: 'TO DO' };
   const EXPECTED_RESPONSE_TYPE = 'application/json';
+  const EXPECTED_RESPONSE = {
+    mes: '2023-11',
+    horasDevidas: utils.secondsToISO8601Duration(0),
+    horasExcedentes: utils.secondsToISO8601Duration(0),
+    horasTrabalhadas: utils.secondsToISO8601Duration(DB_DATA.length * 8 * 3600),
+    expedientes: DB_DATA.map((data) => ({
+      dia: data.day,
+      pontos: data.registers,
+    })),
+  };
 
   assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
   assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
-  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+  assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
+  assert.strictEqual(
+    response.body.horasDevidas,
+    EXPECTED_RESPONSE.horasDevidas,
+  );
+  assert.deepEqual(response.body.expedientes, EXPECTED_RESPONSE.expedientes);
+  assert.strictEqual(
+    response.body.horasTrabalhadas,
+    EXPECTED_RESPONSE.horasTrabalhadas,
+  );
+  assert.strictEqual(
+    response.body.horasExcedentes,
+    EXPECTED_RESPONSE.horasExcedentes,
+  );
+
+  app.close();
+});
+
+test('Should return valid /folhas-de-ponto/:mes report when exists exceeded hours', async () => {
+  const DB_DATA = fixtures.registersForMonth('2023-12');
+
+  // Add 1h25 of exceeded time for this month
+  DB_DATA[2].registers[0] = '07:45:00';
+  DB_DATA[2].registers[3] = '17:15:00';
+  DB_DATA[7].registers[3] = '17:15:00';
+  DB_DATA[9].registers[3] = '17:15:00';
+  DB_DATA[14].registers[3] = '17:25:00';
+
+  await db.collection('registers').insertMany([...DB_DATA]);
+
+  const response = await request(app).get('/folhas-de-ponto/2023-12');
+
+  const EXPECTED_STATUS_CODE = 200;
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+  const EXPECTED_EXCEDEED_SECONDS = 3600 + 25 * 60;
+  const EXPECTED_WORKED_SECONDS =
+    DB_DATA.length * 8 * 3600 + EXPECTED_EXCEDEED_SECONDS;
+
+  const EXPECTED_RESPONSE = {
+    mes: '2023-12',
+    horasDevidas: utils.secondsToISO8601Duration(0),
+    horasExcedentes: utils.secondsToISO8601Duration(EXPECTED_EXCEDEED_SECONDS),
+    horasTrabalhadas: utils.secondsToISO8601Duration(EXPECTED_WORKED_SECONDS),
+    expedientes: DB_DATA.map((data) => ({
+      dia: data.day,
+      pontos: data.registers,
+    })),
+  };
+
+  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
+  assert.strictEqual(
+    response.body.horasDevidas,
+    EXPECTED_RESPONSE.horasDevidas,
+  );
+  assert.deepEqual(response.body.expedientes, EXPECTED_RESPONSE.expedientes);
+  assert.strictEqual(
+    response.body.horasTrabalhadas,
+    EXPECTED_RESPONSE.horasTrabalhadas,
+  );
+  assert.strictEqual(
+    response.body.horasExcedentes,
+    EXPECTED_RESPONSE.horasExcedentes,
+  );
+
+  app.close();
+});
+
+test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', async () => {
+  const DB_DATA = fixtures.registersForMonth('2023-12');
+
+  // Add 2h45 of owed time for this month
+  DB_DATA[2].registers[0] = '08:30:00';
+  DB_DATA[2].registers[2] = '13:30:00';
+  DB_DATA[7].registers[3] = '16:30:00';
+  DB_DATA[9].registers[0] = '09:00:00';
+  DB_DATA[14].registers[3] = '16:45:00';
+
+  await db.collection('registers').insertMany([...DB_DATA]);
+
+  const response = await request(app).get('/folhas-de-ponto/2023-12');
+
+  const EXPECTED_STATUS_CODE = 200;
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+  const EXPECTED_OWED_SECONDS = 7200 + 45 * 60;
+  const EXPECTED_WORKED_SECONDS =
+    DB_DATA.length * 8 * 3600 - EXPECTED_OWED_SECONDS;
+
+  const EXPECTED_RESPONSE = {
+    mes: '2023-12',
+    horasExcedentes: utils.secondsToISO8601Duration(0),
+    horasDevidas: utils.secondsToISO8601Duration(EXPECTED_OWED_SECONDS),
+    horasTrabalhadas: utils.secondsToISO8601Duration(EXPECTED_WORKED_SECONDS),
+    expedientes: DB_DATA.map((data) => ({
+      dia: data.day,
+      pontos: data.registers,
+    })),
+  };
+
+  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
+  assert.strictEqual(
+    response.body.horasDevidas,
+    EXPECTED_RESPONSE.horasDevidas,
+  );
+  assert.deepEqual(response.body.expedientes, EXPECTED_RESPONSE.expedientes);
+  assert.strictEqual(
+    response.body.horasTrabalhadas,
+    EXPECTED_RESPONSE.horasTrabalhadas,
+  );
+  assert.strictEqual(
+    response.body.horasExcedentes,
+    EXPECTED_RESPONSE.horasExcedentes,
+  );
 
   app.close();
 });

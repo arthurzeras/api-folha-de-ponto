@@ -1,6 +1,6 @@
 import db from './db.mjs';
 import messages from './messages.mjs';
-import { hourStringToSeconds } from './utils.mjs';
+import { hourStringToSeconds, secondsToISO8601Duration } from './utils.mjs';
 
 class RegisterError extends Error {
   constructor(message, httpStatusCode) {
@@ -61,6 +61,41 @@ async function createOrUpdateRegister(day, hour) {
 }
 
 /**
+ * Receive the registers from database and calculate hours worked,
+ * hours exceeded and hours owed based on registers field.
+ * If the register has less than 4 registers, it will be filled with 00:00:00.
+ * @param {Record<string, any>} registers
+ * @returns {Record<string, number>}
+ */
+function calculateRegistersTimes(registers) {
+  return registers.reduce(
+    (total, register) => {
+      const totalRegisters = register.registers.length;
+      let times = [...register.registers];
+
+      if (totalRegisters < 4) {
+        const toFill = Array.from({ length: 4 - totalRegisters }).fill(
+          '00:00:00',
+        );
+
+        times = [...times, ...toFill];
+      }
+
+      times = times.map((r) => hourStringToSeconds(r));
+      const worked = times[3] - times[2] + (times[1] - times[0]);
+
+      total.secondsWorked += worked;
+      const secondsExceeded = worked - 8 * 3600;
+      total.secondsExceeded += secondsExceeded > 0 ? secondsExceeded : 0;
+      total.secondsOwed += secondsExceeded < 0 ? secondsExceeded * -1 : 0;
+
+      return total;
+    },
+    { secondsWorked: 0, secondsExceeded: 0, secondsOwed: 0 },
+  );
+}
+
+/**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
@@ -99,7 +134,7 @@ export async function registerHandler(req, res) {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export function reportHandler(req, res) {
+export async function reportHandler(req, res) {
   const monthParam = req.params.mes;
   const isValidParam = /^20\d{2}-(?:0[1-9]|1[0-2])$/g.test(monthParam);
 
@@ -107,5 +142,23 @@ export function reportHandler(req, res) {
     return res.status(400).json({ message: messages.REPORT.INVALID_PARAMETER });
   }
 
-  res.json({ message: 'TO DO' });
+  const registers = await DB_COLLECTION.find({
+    monthString: monthParam,
+  }).toArray();
+
+  const times = calculateRegistersTimes(registers);
+  const owedHours = secondsToISO8601Duration(times.secondsOwed);
+  const workHours = secondsToISO8601Duration(times.secondsWorked);
+  const exceededHours = secondsToISO8601Duration(times.secondsExceeded);
+
+  res.json({
+    mes: monthParam,
+    horasDevidas: owedHours,
+    horasTrabalhadas: workHours,
+    horasExcedentes: exceededHours,
+    expedientes: registers.map((register) => ({
+      dia: register.day,
+      pontos: register.registers,
+    })),
+  });
 }
