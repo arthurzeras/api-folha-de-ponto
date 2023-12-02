@@ -53,7 +53,11 @@ async function createOrUpdateRegister(day, hour) {
     return DB_COLLECTION.updateOne(register, { $push: { registers: hour } });
   }
 
-  return DB_COLLECTION.insertOne({ day, registers: [hour] });
+  return DB_COLLECTION.insertOne({
+    day,
+    registers: [hour],
+    monthString: day.substr(0, 7),
+  });
 }
 
 /**

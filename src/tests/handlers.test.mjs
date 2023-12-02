@@ -36,7 +36,12 @@ test('Should save a new entrance for /batidas endpoint', async () => {
   assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
-  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    monthString: '2023-11',
+    registers: ['08:00:00'],
+  };
+
   const register = await db
     .collection('registers')
     .findOne({ day: '2023-11-29' });
@@ -58,7 +63,12 @@ test('Should not create two registers for same day', async () => {
   assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
-  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    monthString: '2023-11',
+    registers: ['08:00:00'],
+  };
+
   const register = await db
     .collection('registers')
     .findOne({ day: '2023-11-29' });
@@ -130,7 +140,12 @@ test('Should return a Bad Request error if hour is before than the previous adde
   assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
-  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['09:00:00'] };
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    monthString: '2023-11',
+    registers: ['09:00:00'],
+  };
+
   const register = await db
     .collection('registers')
     .findOne({ day: '2023-11-29' });
@@ -166,7 +181,12 @@ test('Should return a Conflict error if hour is same than the previous added', a
   assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
-  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    monthString: '2023-11',
+    registers: ['08:00:00'],
+  };
+
   const register = await db
     .collection('registers')
     .findOne({ day: '2023-11-29' });
@@ -204,7 +224,12 @@ test('Should save two registers', async () => {
   assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
-  const EXPECTED_DB_RETURN = { day: '2023-11-29', registers: ['08:00:00'] };
+  const EXPECTED_DB_RETURN = {
+    day: '2023-11-29',
+    monthString: '2023-11',
+    registers: ['08:00:00'],
+  };
+
   const register = await db
     .collection('registers')
     .findOne({ day: '2023-11-29' });
@@ -228,6 +253,7 @@ test('Should save two registers', async () => {
   const EXPECTED_TOTAL_REGISTERS = 2;
   const EXPECTED_DB_RETURN_2 = {
     day: '2023-11-29',
+    monthString: '2023-11',
     registers: ['08:00:00', '12:00:00'],
   };
 
@@ -275,6 +301,7 @@ test('Should save 4 registers', async () => {
   const EXPECTED_TOTAL_REGISTERS = 4;
   const EXPECTED_DB_RETURN = {
     day: '2023-11-29',
+    monthString: '2023-11',
     registers: ['08:00:00', '12:00:00', '13:00:00', '17:00:00'],
   };
 
