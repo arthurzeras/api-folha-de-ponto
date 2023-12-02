@@ -2,7 +2,12 @@ import db from './db.mjs';
 import messages from './messages.mjs';
 import { hourStringToSeconds } from './utils.mjs';
 
-class RegisterError extends Error {}
+class RegisterError extends Error {
+  constructor(message, httpStatusCode) {
+    super(message);
+    this.status = httpStatusCode;
+  }
+}
 
 const DB_COLLECTION = db.collection('registers');
 
@@ -15,10 +20,19 @@ async function createOrUpdateRegister(day, hour) {
       throw new RegisterError(messages.REGISTER.MAX_HOURS);
     }
 
+    // Avoid save hours equals than already existant (same hour)
+    const existsEquals = register.registers.find(
+      (_register) =>
+        hourStringToSeconds(_register) === hourStringToSeconds(hour),
+    );
+
+    if (existsEquals) {
+      throw new RegisterError(messages.REGISTER.HOUR_ALREADY_EXISTS, 409);
+    }
+
     // Avoid save hours before than already existant
     const existsGreater = register.registers.find(
-      (_register) =>
-        hourStringToSeconds(_register) >= hourStringToSeconds(hour),
+      (_register) => hourStringToSeconds(_register) > hourStringToSeconds(hour),
     );
 
     if (existsGreater) {
@@ -70,7 +84,7 @@ export async function registerHandler(req, res) {
     res.json({ dia: register.day, pontos: register.registers });
   } catch (error) {
     if (error instanceof RegisterError) {
-      return res.status(400).json({ message: error.message });
+      return res.status(error.status || 400).json({ message: error.message });
     }
 
     res.status(500).json({ message: messages.REGISTER.FAILED_TO_REGISTER });

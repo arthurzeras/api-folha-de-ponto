@@ -1,4 +1,5 @@
 const REGISTER = {
+  HOUR_ALREADY_EXISTS: 'Horário já registrado',
   FAILED_TO_REGISTER: 'Falha ao registrar o evento',
   INVALID_PARAMETER: 'O parâmetro "momento" é obrigatório',
   LUNCH_TOO_SMALL: 'Deve haver no mínimo 1 hora de almoço',

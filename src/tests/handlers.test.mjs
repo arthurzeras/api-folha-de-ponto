@@ -155,7 +155,7 @@ test('Should return a Bad Request error if hour is before than the previous adde
   assert.strictEqual(register2.registers.length, EXPECTED_TOTAL_REGISTERS);
 });
 
-test('Should return a Bad Request error if hour is same than the previous added', async () => {
+test('Should return a Conflict error if hour is same than the previous added', async () => {
   const response1 = await createRegister('2023-11-29T08:00:00');
 
   const EXPECTED_STATUS_CODE = 200;
@@ -176,8 +176,10 @@ test('Should return a Bad Request error if hour is same than the previous added'
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
   const response2 = await createRegister('2023-11-29T08:00:00');
-  const EXPECTED_STATUS_CODE_2 = 400;
-  const EXPECTED_RESPONSE_2 = { message: messages.REGISTER.INVALID_HOUR };
+  const EXPECTED_STATUS_CODE_2 = 409;
+  const EXPECTED_RESPONSE_2 = {
+    message: messages.REGISTER.HOUR_ALREADY_EXISTS,
+  };
 
   assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
   assert.strictEqual(response2.status, EXPECTED_STATUS_CODE_2);
