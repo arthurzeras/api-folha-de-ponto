@@ -5,15 +5,16 @@
   "main": "src/app.mjs",
   "scripts": {
     "dev": "node --watch src/app.mjs",
-    "test": "PORT=3333 node --test src/tests.mjs",
-    "test:watch": "PORT=3333 node --watch src/tests.mjs",
-    "test:coverage": "NODE_V8_COVERAGE=./.coverage PORT=3333 node --test --experimental-test-coverage src/tests.mjs"
+    "test": "DB_NAME=test PORT=3333 node --test src/tests.mjs",
+    "test:watch": "DB_NAME=test PORT=3333 node --watch src/tests.mjs",
+    "test:coverage": "DB_NAME=test NODE_V8_COVERAGE=./.coverage PORT=3333 node --test --experimental-test-coverage src/tests.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "mongodb": "^6.3.0"
   },
   "devDependencies": {
     "prettier": "^3.1.0",
