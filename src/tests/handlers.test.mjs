@@ -306,6 +306,32 @@ test('Should return a Bad Request error if four registers already exists for sam
   assert.deepEqual(register, DB_DATA);
 });
 
+test('Should not allow lunch time smallest than 1 hour', async () => {
+  const DB_DATA = {
+    day: '2023-11-29',
+    registers: ['08:00:00', '12:00:00'],
+  };
+
+  await db.collection('registers').insertOne({ ...DB_DATA });
+
+  const response = await createRegister('2023-11-29T12:59:59');
+  const EXPECTED_STATUS_CODE = 400;
+  const EXPECTED_RESPONSE_TYPE = 'application/json';
+  const EXPECTED_RESPONSE = { message: messages.REGISTER.LUNCH_TOO_SMALL };
+
+  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
+  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+
+  const register = await db
+    .collection('registers')
+    .findOne({ day: '2023-11-29' });
+
+  delete register._id;
+
+  assert.deepEqual(register, DB_DATA);
+});
+
 test('Should return TO DO for /folhas-de-ponto/:mes endpoint', async () => {
   const response = await request(app).get('/folhas-de-ponto/22222');
 

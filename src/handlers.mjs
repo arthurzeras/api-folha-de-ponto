@@ -10,10 +10,12 @@ async function createOrUpdateRegister(day, hour) {
   const register = await DB_COLLECTION.findOne({ day });
 
   if (register) {
+    // Avoid save more than 4 registers
     if (register.registers.length === 4) {
       throw new RegisterError(messages.REGISTER.MAX_HOURS);
     }
 
+    // Avoid save hours before than already existant
     const existsGreater = register.registers.find(
       (_register) =>
         hourStringToSeconds(_register) >= hourStringToSeconds(hour),
@@ -21,6 +23,17 @@ async function createOrUpdateRegister(day, hour) {
 
     if (existsGreater) {
       throw new RegisterError(messages.REGISTER.INVALID_HOUR);
+    }
+
+    // Avoid lunch time small than 1 hour
+    if (register.registers.length === 2) {
+      const ONE_HOUR_IN_SECONDS = 3600;
+      const lunchEntryInSeconds = hourStringToSeconds(register.registers[1]);
+      const lunchReturnInSeconds = hourStringToSeconds(hour);
+
+      if (lunchReturnInSeconds - lunchEntryInSeconds < ONE_HOUR_IN_SECONDS) {
+        throw new RegisterError(messages.REGISTER.LUNCH_TOO_SMALL);
+      }
     }
 
     return DB_COLLECTION.updateOne(register, { $push: { registers: hour } });
