@@ -1,9 +1,9 @@
-import app from './app.mjs';
+import app from '../app.mjs';
 import test from 'node:test';
 import request from 'supertest';
 import assert from 'node:assert';
-import messages from './messages.mjs';
-import db, { client } from './db.mjs';
+import messages from '../messages.mjs';
+import db, { client } from '../db.mjs';
 
 test.beforeEach(async () => {
   await client.connect();
