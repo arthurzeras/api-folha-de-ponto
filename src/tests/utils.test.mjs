@@ -15,3 +15,17 @@ test('Should format 17:43:11 hours to seconds', () => {
   const seconds = utils.hourStringToSeconds(INPUT);
   assert.strictEqual(seconds, EXPECTED);
 });
+
+test('Should format 3600 seconds (1 hour) to correct ISO 8601 duration', () => {
+  const INPUT = 3600;
+  const EXPECTED = 'PT1H0S';
+  const duration = utils.secondsToISO8601Duration(INPUT);
+  assert.strictEqual(duration, EXPECTED);
+});
+
+test('Should format 252922 seconds (70:15:22) to correct ISO 8601 duration', () => {
+  const INPUT = 252922;
+  const EXPECTED = 'PT70H15M22S';
+  const duration = utils.secondsToISO8601Duration(INPUT);
+  assert.strictEqual(duration, EXPECTED);
+});
