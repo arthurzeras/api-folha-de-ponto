@@ -20,7 +20,7 @@ test.beforeEach(async () => {
 });
 
 function createRegister(date) {
-  return request(app).post('/batidas').send({ momento: date });
+  return request(app).post('/v1/batidas').send({ momento: date });
 }
 
 test('Should show swagger docs for / endpoint', async (t) => {
@@ -103,7 +103,7 @@ test('Should not create two registers for same day', async () => {
 });
 
 test('Should return a Bad Request error if not receive "momento" parameter', async () => {
-  const response = await request(app).post('/batidas');
+  const response = await request(app).post('/v1/batidas');
   const EXPECTED_RESPONSE = {
     mensagem: messages.REGISTER.INVALID_PARAMETER,
   };
@@ -372,7 +372,7 @@ test('Should return valid /folhas-de-ponto/:mes report', async () => {
   const DB_DATA = fixtures.registersForMonth('2023-11');
   await db.collection('registers').insertMany([...DB_DATA]);
 
-  const response = await request(app).get('/folhas-de-ponto/2023-11');
+  const response = await request(app).get('/v1/folhas-de-ponto/2023-11');
 
   const EXPECTED_RESPONSE = {
     mes: '2023-11',
@@ -417,7 +417,7 @@ test('Should return valid /folhas-de-ponto/:mes report when exists exceeded hour
 
   await db.collection('registers').insertMany([...DB_DATA]);
 
-  const response = await request(app).get('/folhas-de-ponto/2023-12');
+  const response = await request(app).get('/v1/folhas-de-ponto/2023-12');
   const EXPECTED_EXCEDEED_SECONDS = 3600 + 25 * 60;
   const EXPECTED_WORKED_SECONDS =
     DB_DATA.length * 8 * 3600 + EXPECTED_EXCEDEED_SECONDS;
@@ -465,7 +465,7 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
 
   await db.collection('registers').insertMany([...DB_DATA]);
 
-  const response = await request(app).get('/folhas-de-ponto/2023-12');
+  const response = await request(app).get('/v1/folhas-de-ponto/2023-12');
 
   const EXPECTED_OWED_SECONDS = 7200 + 45 * 60;
   const EXPECTED_WORKED_SECONDS =
@@ -503,7 +503,7 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
 });
 
 test('Should return a Bad Request error if URL parameter is not valid in "/folhas-de-ponto" endpoint', async () => {
-  const response = await request(app).get('/folhas-de-ponto/22312');
+  const response = await request(app).get('/v1/folhas-de-ponto/22312');
   const EXPECTED_RESPONSE = { message: messages.REPORT.INVALID_PARAMETER };
 
   assert.strictEqual(response.type, HEADER_CONTENT_JSON);

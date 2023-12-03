@@ -24,60 +24,61 @@ router.get('/', swaggerUi.setup(swaggerSpecs));
 
 /**
  * @swagger
- * definitions:
- *   Batida:
- *     type: object
- *     description: Batida de ponto
- *     properties:
- *       momento:
- *         type: string
- *         description: Momento da batida
- *         example: "2018-08-22T08:00:00"
- *   Expediente:
- *    type: object
- *    description: Jornada diária de trabalho
- *    properties:
- *      dia:
- *        type: string
- *        format: date
- *      pontos:
- *        type: array
- *        example: ["08:00:00", "12:00:00", "13:00:00", "18:00:00"]
- *        items:
+ * components:
+ *   schemas:
+ *     Batida:
+ *       type: object
+ *       description: Batida de ponto
+ *       properties:
+ *         momento:
+ *           type: string
+ *           description: Momento da batida
+ *           example: "2023-12-01T08:00:00"
+ *     Expediente:
+ *      type: object
+ *      description: Jornada diária de trabalho
+ *      properties:
+ *        dia:
  *          type: string
- *   Relatorio:
- *    type: object
- *    description: Relatório mensal
- *    properties:
- *      mes:
- *        format: ISO 8601.Duration
- *        type: string
- *        example: 2018-08
- *      horasTrabalhadas:
- *        format: ISO 8601.Duration
- *        type: string
- *        example: PT69H35M5S
- *      horasExcedentes:
- *        type: string
- *        example: PT25M5S
- *      horasDevidas:
- *        format: ISO 8601.Duration
- *        type: string
- *        example: PT0S
- *      expedientes:
- *        type: array
- *        items:
- *          $ref: '#/definitions/Expediente'
- *   Erro:
- *    type: object
- *    properties:
- *      mensagem:
- *        type: string
+ *          format: date
+ *        pontos:
+ *          type: array
+ *          example: ["08:00:00", "12:00:00", "13:00:00", "18:00:00"]
+ *          items:
+ *            type: string
+ *     Relatorio:
+ *      type: object
+ *      description: Relatório mensal
+ *      properties:
+ *        mes:
+ *          format: ISO 8601.Duration
+ *          type: string
+ *          example: 2018-08
+ *        horasTrabalhadas:
+ *          format: ISO 8601.Duration
+ *          type: string
+ *          example: PT69H35M5S
+ *        horasExcedentes:
+ *          type: string
+ *          example: PT25M5S
+ *        horasDevidas:
+ *          format: ISO 8601.Duration
+ *          type: string
+ *          example: PT0S
+ *        expedientes:
+ *          type: array
+ *          items:
+ *            $ref: '#/components/schemas/Expediente'
+ *     Erro:
+ *      type: object
+ *      properties:
+ *        mensagem:
+ *          type: string
  */
 
 /**
  * @swagger
- * /batidas:
+ * /v1/batidas:
  *  post:
  *    tags:
  *      - "Batidas"
@@ -85,24 +86,24 @@ router.get('/', swaggerUi.setup(swaggerSpecs));
  *    description: Registrar um horário da jornada diária de trabalho
  *    produces:
  *      - application/json
- *    parameters:
- *      - in: body
- *        schema:
- *          type: object
- *          $ref: '#/definitions/Batida'
+ *    requestBody:
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: "#/components/schemas/Batida"
  *    responses:
  *      201:
  *        description: Created
  *        content:
  *          application/json:
  *            schema:
- *              $ref: "#/definitions/Expediente"
+ *              $ref: "#/components/schemas/Expediente"
  *      400:
  *        description: Bad Request
  *        content:
  *          application/json:
  *            schema:
- *              $ref: "#/definitions/Erro"
+ *              $ref: "#/components/schemas/Erro"
  *            examples:
  *              Almoço:
  *                value:
@@ -124,13 +125,13 @@ router.get('/', swaggerUi.setup(swaggerSpecs));
  *        content:
  *          application/json:
  *            schema:
- *              $ref: "#/definitions/Erro"
+ *              $ref: "#/components/schemas/Erro"
  *            examples:
  *              Horário já registrado:
  *                value:
  *                  mensagem: Horário já registrado
  */
-router.post('/batidas', handlers.registerHandler);
+router.post('/v1/batidas', handlers.registerHandler);
 
 /**
  * @swagger
@@ -146,17 +147,17 @@ router.post('/batidas', handlers.registerHandler);
  *        required: true
  *        schema:
  *          type: string
- *          example: "2018-08"
+ *          example: "2023-12"
  *    responses:
  *      200:
  *        description: Relatório mensal
  *        content:
  *          application/json:
  *            schema:
- *              $ref: "#/definitions/Relatorio"
+ *              $ref: "#/components/schemas/Relatorio"
  *      404:
  *        description: Relatório não encontrado
  */
-router.get('/folhas-de-ponto/:mes', handlers.reportHandler);
+router.get('/v1/folhas-de-ponto/:mes', handlers.reportHandler);
 
 export default router;
