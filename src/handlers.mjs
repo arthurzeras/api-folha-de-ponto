@@ -73,31 +73,34 @@ async function createOrUpdateRegister(day, hour) {
  * @returns {Record<string, number>}
  */
 function calculateRegistersTimes(registers) {
-  return registers.reduce(
-    (total, register) => {
-      const totalRegisters = register.registers.length;
-      let times = [...register.registers];
+  const totalWorked = registers.reduce((total, register) => {
+    const totalRegisters = register.registers.length;
+    let times = [...register.registers];
 
-      if (totalRegisters < 4) {
-        const toFill = Array.from({ length: 4 - totalRegisters }).fill(
-          '00:00:00',
-        );
+    if (totalRegisters < 4) {
+      const toFill = Array.from({ length: 4 - totalRegisters }).fill(
+        '00:00:00',
+      );
 
-        times = [...times, ...toFill];
-      }
+      times = [...times, ...toFill];
+    }
 
-      times = times.map((r) => utils.hourStringToSeconds(r));
-      const worked = times[3] - times[2] + (times[1] - times[0]);
+    times = times.map((r) => utils.hourStringToSeconds(r));
+    total += times[3] - times[2] + (times[1] - times[0]);
+    return total;
+  }, 0);
 
-      total.secondsWorked += worked;
-      const secondsExceeded = worked - 8 * 3600;
-      total.secondsExceeded += secondsExceeded > 0 ? secondsExceeded : 0;
-      total.secondsOwed += secondsExceeded < 0 ? secondsExceeded * -1 : 0;
+  const daysWorked = registers.length;
+  const totalWorkableSeconds = daysWorked * 8 * 3600;
+  const difference = totalWorked - totalWorkableSeconds;
+  const secondsExceeded = difference > 0 ? difference : 0;
+  const secondsOwed = difference < 0 ? difference * -1 : 0;
 
-      return total;
-    },
-    { secondsWorked: 0, secondsExceeded: 0, secondsOwed: 0 },
-  );
+  return {
+    secondsOwed,
+    secondsExceeded,
+    secondsWorked: totalWorked,
+  };
 }
 
 /**

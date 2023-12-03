@@ -405,6 +405,61 @@ test('Should return valid /folhas-de-ponto/:mes report', async () => {
   app.close();
 });
 
+test('Should return valid /folhas-de-ponto/:mes without fixture', async () => {
+  const DB_DATA = [
+    {
+      day: '2023-11-01',
+      monthString: '2023-11',
+      registers: ['08:00:32', '12:01:12', '13:04:10', '17:01:11'], // Owed 2m19s
+    },
+    {
+      day: '2023-11-01',
+      monthString: '2023-11',
+      registers: ['08:00:00', '12:02:00', '13:05:00', '17:12:00'], // Exceeded 9 minutes
+    },
+    {
+      day: '2023-11-01',
+      monthString: '2023-11',
+      registers: ['08:00:00', '12:00:00', '13:00:00', '18:00:00'], // Exceeded 1 hour
+    },
+  ];
+
+  await db.collection('registers').insertMany([...DB_DATA]);
+  const response = await request(app).get('/v1/folhas-de-ponto/2023-11');
+
+  const EXPECTED_RESPONSE = {
+    mes: '2023-11',
+    horasDevidas: 'PT0S',
+    horasExcedentes: 'PT1H6M41S',
+    horasTrabalhadas: utils.secondsToISO8601Duration(
+      DB_DATA.length * 8 * 3600 + 3600 + 6 * 60 + 41,
+    ),
+    expedientes: DB_DATA.map((data) => ({
+      dia: data.day,
+      pontos: data.registers,
+    })),
+  };
+
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_OK);
+  assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
+  assert.strictEqual(
+    response.body.horasDevidas,
+    EXPECTED_RESPONSE.horasDevidas,
+  );
+  assert.deepEqual(response.body.expedientes, EXPECTED_RESPONSE.expedientes);
+  assert.strictEqual(
+    response.body.horasTrabalhadas,
+    EXPECTED_RESPONSE.horasTrabalhadas,
+  );
+  assert.strictEqual(
+    response.body.horasExcedentes,
+    EXPECTED_RESPONSE.horasExcedentes,
+  );
+
+  app.close();
+});
+
 test('Should return valid /folhas-de-ponto/:mes report when exists exceeded hours', async () => {
   const DB_DATA = fixtures.registersForMonth('2023-12');
 
