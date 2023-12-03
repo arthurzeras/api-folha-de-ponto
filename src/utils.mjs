@@ -1,3 +1,6 @@
+export const ISO_DATE_PATTERN =
+  /^(?:19|20)\d\d-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
+
 /**
  * Transform an hourly formatted string to seconds.
  * Ex.: 08:00:00 -> 28800

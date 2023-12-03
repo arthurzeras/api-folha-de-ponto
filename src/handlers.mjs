@@ -1,6 +1,6 @@
 import db from './db.mjs';
 import messages from './messages.mjs';
-import { hourStringToSeconds, secondsToISO8601Duration } from './utils.mjs';
+import * as utils from './utils.mjs';
 
 class RegisterError extends Error {
   constructor(message, httpStatusCode) {
@@ -21,19 +21,22 @@ async function createOrUpdateRegister(day, hour) {
     }
 
     // Avoid save hours equals than already existant (same hour)
-    const existsEquals = register.registers.find(
-      (_register) =>
-        hourStringToSeconds(_register) === hourStringToSeconds(hour),
-    );
+    const existsEquals = register.registers.find((_register) => {
+      const receivedHoursInSeconds = utils.hourStringToSeconds(hour);
+      const registeredTimeInSeconds = utils.hourStringToSeconds(_register);
+      return registeredTimeInSeconds === receivedHoursInSeconds;
+    });
 
     if (existsEquals) {
       throw new RegisterError(messages.REGISTER.HOUR_ALREADY_EXISTS, 409);
     }
 
     // Avoid save hours before than already existant
-    const existsGreater = register.registers.find(
-      (_register) => hourStringToSeconds(_register) > hourStringToSeconds(hour),
-    );
+    const existsGreater = register.registers.find((_register) => {
+      const receivedHoursInSeconds = utils.hourStringToSeconds(hour);
+      const registeredTimeInSeconds = utils.hourStringToSeconds(_register);
+      return registeredTimeInSeconds > receivedHoursInSeconds;
+    });
 
     if (existsGreater) {
       throw new RegisterError(messages.REGISTER.INVALID_HOUR);
@@ -42,8 +45,10 @@ async function createOrUpdateRegister(day, hour) {
     // Avoid lunch time small than 1 hour
     if (register.registers.length === 2) {
       const ONE_HOUR_IN_SECONDS = 3600;
-      const lunchEntryInSeconds = hourStringToSeconds(register.registers[1]);
-      const lunchReturnInSeconds = hourStringToSeconds(hour);
+      const lunchEntryInSeconds = utils.hourStringToSeconds(
+        register.registers[1],
+      );
+      const lunchReturnInSeconds = utils.hourStringToSeconds(hour);
 
       if (lunchReturnInSeconds - lunchEntryInSeconds < ONE_HOUR_IN_SECONDS) {
         throw new RegisterError(messages.REGISTER.LUNCH_TOO_SMALL);
@@ -81,7 +86,7 @@ function calculateRegistersTimes(registers) {
         times = [...times, ...toFill];
       }
 
-      times = times.map((r) => hourStringToSeconds(r));
+      times = times.map((r) => utils.hourStringToSeconds(r));
       const worked = times[3] - times[2] + (times[1] - times[0]);
 
       total.secondsWorked += worked;
@@ -153,9 +158,9 @@ export async function reportHandler(req, res) {
   }).toArray();
 
   const times = calculateRegistersTimes(registers);
-  const owedHours = secondsToISO8601Duration(times.secondsOwed);
-  const workHours = secondsToISO8601Duration(times.secondsWorked);
-  const exceededHours = secondsToISO8601Duration(times.secondsExceeded);
+  const owedHours = utils.secondsToISO8601Duration(times.secondsOwed);
+  const workHours = utils.secondsToISO8601Duration(times.secondsWorked);
+  const exceededHours = utils.secondsToISO8601Duration(times.secondsExceeded);
 
   res.json({
     mes: monthParam,
