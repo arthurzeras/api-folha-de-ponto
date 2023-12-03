@@ -116,6 +116,12 @@ export async function registerHandler(req, res) {
 
   const [day, hour] = data.momento.split('T');
 
+  if ([0, 6].includes(new Date(day).getDay())) {
+    return res
+      .status(400)
+      .json({ mensagem: messages.REGISTER.SATURDAY_SUNDAY_NOT_WORK });
+  }
+
   try {
     await createOrUpdateRegister(day, hour);
     const register = await DB_COLLECTION.findOne({ day });

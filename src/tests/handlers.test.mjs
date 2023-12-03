@@ -165,6 +165,19 @@ test('Should return a Bad Request error if hour is before than the previous adde
   assert.strictEqual(register2.registers.length, EXPECTED_TOTAL_REGISTERS);
 });
 
+test('Should return a Bad Request error if received date is on Weekend', async () => {
+  const response = await createRegister('2023-12-02'); // Saturday
+  const EXPECTED_RESPONSE = {
+    mensagem: messages.REGISTER.SATURDAY_SUNDAY_NOT_WORK,
+  };
+
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
+  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+
+  app.close();
+});
+
 test('Should return a Conflict error if hour is same than the previous added', async () => {
   const response1 = await createRegister('2023-11-29T08:00:00');
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
