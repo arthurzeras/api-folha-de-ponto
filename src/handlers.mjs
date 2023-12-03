@@ -120,7 +120,7 @@ export async function registerHandler(req, res) {
     await createOrUpdateRegister(day, hour);
     const register = await DB_COLLECTION.findOne({ day });
 
-    res.json({ dia: register.day, pontos: register.registers });
+    res.status(201).json({ dia: register.day, pontos: register.registers });
   } catch (error) {
     if (error instanceof RegisterError) {
       return res.status(error.status || 400).json({ message: error.message });

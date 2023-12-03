@@ -7,6 +7,14 @@ import messages from '../messages.mjs';
 import db, { client } from '../db.mjs';
 import * as fixtures from './fixtures.mjs';
 
+const HTTP_OK = 200;
+const HTTP_CREATED = 201;
+const HTTP_CONFLICT = 409;
+const HTTP_BAD_REQUEST = 400;
+
+const HEADER_CONTENT_HTML = 'text/html';
+const HEADER_CONTENT_JSON = 'application/json';
+
 test.beforeEach(async () => {
   await client.connect();
 });
@@ -17,13 +25,10 @@ function createRegister(date) {
 
 test('Should show swagger docs for / endpoint', async (t) => {
   const response = await request(app).get('/');
-
-  const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_CONTENT_TYPE = 'text/html';
   const EXPECTED_MATCH = /swagger/;
 
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
-  assert.strictEqual(response.type, EXPECTED_CONTENT_TYPE);
+  assert.strictEqual(response.status, HTTP_OK);
+  assert.strictEqual(response.type, HEADER_CONTENT_HTML);
   assert.match(response.text, EXPECTED_MATCH);
 
   app.close();
@@ -31,13 +36,10 @@ test('Should show swagger docs for / endpoint', async (t) => {
 
 test('Should save a new entrance for /batidas endpoint', async () => {
   const response = await createRegister('2023-11-29T08:00:00');
-
-  const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_CREATED);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   const EXPECTED_DB_RETURN = {
@@ -59,12 +61,10 @@ test('Should save a new entrance for /batidas endpoint', async () => {
 
 test('Should not create two registers for same day', async () => {
   const response1 = await createRegister('2023-11-29T08:00:00');
-  const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response1.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response1.status, HTTP_CREATED);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
   const EXPECTED_DB_RETURN = {
@@ -82,8 +82,8 @@ test('Should not create two registers for same day', async () => {
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
   const response2 = await createRegister('2023-11-29T12:00:00');
-  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response2.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response2.status, HTTP_CREATED);
 
   const totalRegisters = await db
     .collection('registers')
@@ -104,15 +104,12 @@ test('Should not create two registers for same day', async () => {
 
 test('Should return a Bad Request error if not receive "momento" parameter', async () => {
   const response = await request(app).post('/batidas');
-
-  const EXPECTED_STATUS_CODE = 400;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = {
     mensagem: messages.REGISTER.INVALID_PARAMETER,
   };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   app.close();
@@ -120,14 +117,12 @@ test('Should return a Bad Request error if not receive "momento" parameter', asy
 
 test('Should return a Bad Request error if "momento" parameter is not a valid date', async () => {
   const response = await createRegister('mdasdasdas');
-  const EXPECTED_STATUS_CODE = 400;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = {
     mensagem: messages.REGISTER.INVALID_PARAMETER_TYPE,
   };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   app.close();
@@ -135,13 +130,10 @@ test('Should return a Bad Request error if "momento" parameter is not a valid da
 
 test('Should return a Bad Request error if hour is before than the previous added', async () => {
   const response1 = await createRegister('2023-11-29T09:00:00');
-
-  const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['09:00:00'] };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response1.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response1.status, HTTP_CREATED);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
   const EXPECTED_DB_RETURN = {
@@ -159,11 +151,10 @@ test('Should return a Bad Request error if hour is before than the previous adde
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
   const response2 = await createRegister('2023-11-29T08:00:00');
-  const EXPECTED_STATUS_CODE_2 = 400;
   const EXPECTED_RESPONSE_2 = { message: messages.REGISTER.INVALID_HOUR };
 
-  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE_2);
+  assert.strictEqual(response2.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response2.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response2.body, EXPECTED_RESPONSE_2);
 
   const register2 = await db
@@ -176,13 +167,10 @@ test('Should return a Bad Request error if hour is before than the previous adde
 
 test('Should return a Conflict error if hour is same than the previous added', async () => {
   const response1 = await createRegister('2023-11-29T08:00:00');
-
-  const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response1.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response1.status, HTTP_CREATED);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
   const EXPECTED_DB_RETURN = {
@@ -200,13 +188,12 @@ test('Should return a Conflict error if hour is same than the previous added', a
   assert.deepEqual(register, EXPECTED_DB_RETURN);
 
   const response2 = await createRegister('2023-11-29T08:00:00');
-  const EXPECTED_STATUS_CODE_2 = 409;
   const EXPECTED_RESPONSE_2 = {
     message: messages.REGISTER.HOUR_ALREADY_EXISTS,
   };
 
-  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE_2);
+  assert.strictEqual(response2.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response2.status, HTTP_CONFLICT);
   assert.deepEqual(response2.body, EXPECTED_RESPONSE_2);
 
   const register2 = await db
@@ -219,13 +206,10 @@ test('Should return a Conflict error if hour is same than the previous added', a
 
 test('Should save two registers', async () => {
   const response1 = await createRegister('2023-11-29T08:00:00');
-
-  const EXPECTED_STATUS_CODE = 200;
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response1.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response1.status, HTTP_CREATED);
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
 
   const EXPECTED_DB_RETURN = {
@@ -244,8 +228,8 @@ test('Should save two registers', async () => {
 
   const response2 = await createRegister('2023-11-29T12:00:00');
   EXPECTED_RESPONSE.pontos.push('12:00:00');
-  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response2.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response2.status, HTTP_CREATED);
   assert.deepEqual(response2.body, EXPECTED_RESPONSE);
 
   const register2 = await db
@@ -271,18 +255,15 @@ test('Should save 4 registers', async () => {
   const response3 = await createRegister('2023-11-29T13:00:00');
   const response4 = await createRegister('2023-11-29T17:00:00');
 
-  const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
+  assert.strictEqual(response1.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response2.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response3.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response4.type, HEADER_CONTENT_JSON);
 
-  assert.strictEqual(response1.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response2.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response3.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response4.type, EXPECTED_RESPONSE_TYPE);
-
-  assert.strictEqual(response1.status, EXPECTED_STATUS_CODE);
-  assert.strictEqual(response2.status, EXPECTED_STATUS_CODE);
-  assert.strictEqual(response3.status, EXPECTED_STATUS_CODE);
-  assert.strictEqual(response4.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response1.status, HTTP_CREATED);
+  assert.strictEqual(response2.status, HTTP_CREATED);
+  assert.strictEqual(response3.status, HTTP_CREATED);
+  assert.strictEqual(response4.status, HTTP_CREATED);
 
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['08:00:00'] };
   assert.deepEqual(response1.body, EXPECTED_RESPONSE);
@@ -322,12 +303,10 @@ test('Should return a Bad Request error if four registers already exists for sam
   await db.collection('registers').insertOne({ ...DB_DATA });
 
   const response = await createRegister('2023-11-29T18:00:00');
-  const EXPECTED_STATUS_CODE = 400;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = { message: messages.REGISTER.MAX_HOURS };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   const register = await db
@@ -348,12 +327,10 @@ test('Should not allow lunch time smallest than 1 hour', async () => {
   await db.collection('registers').insertOne({ ...DB_DATA });
 
   const response = await createRegister('2023-11-29T12:59:59');
-  const EXPECTED_STATUS_CODE = 400;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = { message: messages.REGISTER.LUNCH_TOO_SMALL };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   const register = await db
@@ -371,8 +348,6 @@ test('Should return valid /folhas-de-ponto/:mes report', async () => {
 
   const response = await request(app).get('/folhas-de-ponto/2023-11');
 
-  const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_RESPONSE = {
     mes: '2023-11',
     horasDevidas: utils.secondsToISO8601Duration(0),
@@ -384,8 +359,8 @@ test('Should return valid /folhas-de-ponto/:mes report', async () => {
     })),
   };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_OK);
   assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
   assert.strictEqual(
     response.body.horasDevidas,
@@ -417,9 +392,6 @@ test('Should return valid /folhas-de-ponto/:mes report when exists exceeded hour
   await db.collection('registers').insertMany([...DB_DATA]);
 
   const response = await request(app).get('/folhas-de-ponto/2023-12');
-
-  const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_EXCEDEED_SECONDS = 3600 + 25 * 60;
   const EXPECTED_WORKED_SECONDS =
     DB_DATA.length * 8 * 3600 + EXPECTED_EXCEDEED_SECONDS;
@@ -435,8 +407,8 @@ test('Should return valid /folhas-de-ponto/:mes report when exists exceeded hour
     })),
   };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_OK);
   assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
   assert.strictEqual(
     response.body.horasDevidas,
@@ -469,8 +441,6 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
 
   const response = await request(app).get('/folhas-de-ponto/2023-12');
 
-  const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
   const EXPECTED_OWED_SECONDS = 7200 + 45 * 60;
   const EXPECTED_WORKED_SECONDS =
     DB_DATA.length * 8 * 3600 - EXPECTED_OWED_SECONDS;
@@ -486,8 +456,8 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
     })),
   };
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_OK);
   assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
   assert.strictEqual(
     response.body.horasDevidas,
@@ -508,13 +478,10 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
 
 test('Should return a Bad Request error if URL parameter is not valid in "/folhas-de-ponto" endpoint', async () => {
   const response = await request(app).get('/folhas-de-ponto/22312');
-
-  const EXPECTED_STATUS_CODE = 400;
   const EXPECTED_RESPONSE = { message: messages.REPORT.INVALID_PARAMETER };
-  const EXPECTED_RESPONSE_TYPE = 'application/json';
 
-  assert.strictEqual(response.type, EXPECTED_RESPONSE_TYPE);
-  assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
   assert.deepEqual(response.body, EXPECTED_RESPONSE);
 
   app.close();
