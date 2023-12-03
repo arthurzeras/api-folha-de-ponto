@@ -557,6 +557,30 @@ test('Should return valid /folhas-de-ponto/:mes report when exists owed hours', 
   app.close();
 });
 
+test('Should not return registers from different month', async () => {
+  const DB_DATA_1 = fixtures.registersForMonth('2023-12');
+  const DB_DATA_2 = fixtures.registersForMonth('2023-11');
+
+  await db.collection('registers').insertMany([...DB_DATA_1, ...DB_DATA_2]);
+
+  const response = await request(app).get('/v1/folhas-de-ponto/2023-12');
+
+  const EXPECTED_RESPONSE = {
+    mes: '2023-12',
+    expedientes: DB_DATA_1.map((data) => ({
+      dia: data.day,
+      pontos: data.registers,
+    })),
+  };
+
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_OK);
+  assert.strictEqual(response.body.mes, EXPECTED_RESPONSE.mes);
+  assert.deepEqual(response.body.expedientes, EXPECTED_RESPONSE.expedientes);
+
+  app.close();
+});
+
 test('Should return a Bad Request error if URL parameter is not valid in "/folhas-de-ponto" endpoint', async () => {
   const response = await request(app).get('/v1/folhas-de-ponto/22312');
   const EXPECTED_RESPONSE = { message: messages.REPORT.INVALID_PARAMETER };
