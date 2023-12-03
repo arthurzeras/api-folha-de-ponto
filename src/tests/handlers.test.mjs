@@ -128,6 +128,19 @@ test('Should return a Bad Request error if "momento" parameter is not a valid da
   app.close();
 });
 
+test('Should return a Bad Request error if "momento" parameter is a date but not in the correct format', async () => {
+  const response = await createRegister('2023-11-30');
+  const EXPECTED_RESPONSE = {
+    mensagem: messages.REGISTER.INVALID_PARAMETER_TYPE,
+  };
+
+  assert.strictEqual(response.type, HEADER_CONTENT_JSON);
+  assert.strictEqual(response.status, HTTP_BAD_REQUEST);
+  assert.deepEqual(response.body, EXPECTED_RESPONSE);
+
+  app.close();
+});
+
 test('Should return a Bad Request error if hour is before than the previous added', async () => {
   const response1 = await createRegister('2023-11-29T09:00:00');
   const EXPECTED_RESPONSE = { dia: '2023-11-29', pontos: ['09:00:00'] };
@@ -166,7 +179,7 @@ test('Should return a Bad Request error if hour is before than the previous adde
 });
 
 test('Should return a Bad Request error if received date is on Weekend', async () => {
-  const response = await createRegister('2023-12-02'); // Saturday
+  const response = await createRegister('2023-12-02T12:00:11'); // Saturday
   const EXPECTED_RESPONSE = {
     mensagem: messages.REGISTER.SATURDAY_SUNDAY_NOT_WORK,
   };

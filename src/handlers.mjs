@@ -113,19 +113,19 @@ export async function registerHandler(req, res) {
       .json({ mensagem: messages.REGISTER.INVALID_PARAMETER });
   }
 
-  if (isNaN(new Date(data.momento))) {
+  if (!utils.ISO_DATE_PATTERN.test(data.momento)) {
     return res
       .status(400)
       .json({ mensagem: messages.REGISTER.INVALID_PARAMETER_TYPE });
   }
 
-  const [day, hour] = data.momento.split('T');
-
-  if ([0, 6].includes(new Date(day).getDay())) {
+  if ([0, 6].includes(new Date(data.momento).getDay())) {
     return res
       .status(400)
       .json({ mensagem: messages.REGISTER.SATURDAY_SUNDAY_NOT_WORK });
   }
+
+  const [day, hour] = data.momento.split('T');
 
   try {
     await createOrUpdateRegister(day, hour);
@@ -137,6 +137,7 @@ export async function registerHandler(req, res) {
       return res.status(error.status || 400).json({ message: error.message });
     }
 
+    console.debug(error.message);
     res.status(500).json({ message: messages.REGISTER.FAILED_TO_REGISTER });
   }
 }
