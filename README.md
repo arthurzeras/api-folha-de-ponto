@@ -45,3 +45,7 @@ Também é possível verificar a cobertura de testes com o comando:
 ```
 docker-compose exec -it app npm run test:coverage
 ```
+
+## Documentação
+
+Ao subir a aplicação e acessar a rota raiz `/`, há um swagger com os detalhes dos endpoints e parâmetros que podem ser enviados
