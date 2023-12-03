@@ -32,7 +32,7 @@ export function secondsToISO8601Duration(seconds) {
     durationArray.push(`${hours}H`);
   }
 
-  if (minutes > 0 || (hours === 0 && minutes === 0)) {
+  if (minutes > 0) {
     durationArray.push(`${minutes}M`);
   }
 
