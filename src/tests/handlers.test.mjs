@@ -15,14 +15,16 @@ function createRegister(date) {
   return request(app).post('/batidas').send({ momento: date });
 }
 
-test('Should return Hello World for / endpoint', async (t) => {
+test('Should show swagger docs for / endpoint', async (t) => {
   const response = await request(app).get('/');
 
   const EXPECTED_STATUS_CODE = 200;
-  const EXPECTED_RESPONSE = 'Hello World!';
+  const EXPECTED_CONTENT_TYPE = 'text/html';
+  const EXPECTED_MATCH = /swagger/;
 
   assert.strictEqual(response.status, EXPECTED_STATUS_CODE);
-  assert.strictEqual(response.text, EXPECTED_RESPONSE);
+  assert.strictEqual(response.type, EXPECTED_CONTENT_TYPE);
+  assert.match(response.text, EXPECTED_MATCH);
 
   app.close();
 });
