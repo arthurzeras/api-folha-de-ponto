@@ -23,6 +23,7 @@ services:
     env_file: .env
     volumes:
       - ./:/code
+      - /code/node_modules
     ports:
       - 3000:3000
     depends_on:
